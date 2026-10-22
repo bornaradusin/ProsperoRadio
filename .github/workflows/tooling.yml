@@ -133,6 +133,7 @@ jobs:
           git clone --depth 1 https://github.com/mihawk-99/ps5-opengl.git .deps/ps5-opengl-source
           git -C .deps/ps5-opengl-source rev-parse HEAD
           make -C .deps/ps5-opengl-source source-fetch
+          python3 -m pip install PyYAML Mako
           make -C .deps/ps5-opengl-source sdk
           prefix="$PWD/.deps/ps5-opengl-source/build/sdk/ps5-opengl-gl46"
           test -f "$prefix/manifest.sha256" || { echo "::error::SDK manifest missing"; exit 1; }
