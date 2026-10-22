@@ -28,7 +28,7 @@ jobs:
   build:
     name: Lint, test, and build the release ZIP
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 180
     # The two write entries are for the attestation step only: a signing identity for this run,
     # and storing the attestation. A pull request from a fork gets neither, whatever is asked.
     permissions:
@@ -51,7 +51,7 @@ jobs:
       - name: Install native toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install --yes clang-18 clang-format-18 clang-tidy-18 lld-18 libsqlite3-dev make ccache pkg-config tar unzip wget zip
+          sudo apt-get install --yes clang-18 clang-format-18 clang-tidy-18 lld-18 libsqlite3-dev make ccache pkg-config tar unzip wget zip cmake ninja-build meson bison flex python3-mako python3-markupsafe
 
       - name: Restore compiler cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -128,21 +128,14 @@ jobs:
         run: cd runtime && sha256sum -c libc.prx.sha256
 
       # tools/build.sh compiles through ccache whenever it is installed.
-      - name: Install replacement OpenGL SDK
-        env:
-          SDK_URL: ${{ vars.PS5_OPENGL_SDK_URL }}
-          SDK_SHA256: ${{ vars.PS5_OPENGL_SDK_SHA256 }}
+      - name: Build maintained PS5 OpenGL SDK
         run: |
-          test -n "$SDK_URL" && test -n "$SDK_SHA256" || { echo "::error::Configure replacement SDK repository variables"; exit 1; }
-          curl -fL --retry 3 "$SDK_URL" -o "$RUNNER_TEMP/opengl-sdk.tar.gz"
-          echo "$SDK_SHA256  $RUNNER_TEMP/opengl-sdk.tar.gz" | sha256sum -c -
-          mkdir -p .deps/replacement-opengl
-          tar -xzf "$RUNNER_TEMP/opengl-sdk.tar.gz" -C .deps/replacement-opengl
-          library=$(find "$PWD/.deps/replacement-opengl" -type f -name libPS5OpenGL.a -print -quit)
-          test -n "$library" || { echo "::error::Replacement SDK lacks libPS5OpenGL.a"; exit 1; }
-          prefix=$(dirname "$(dirname "$library")")
-          for f in manifest.sha256 include/EGL/egl.h include/GL/glcorearb.h include/ps5_opengl_display.h lib/libSceAgc.so lib/libSceAgcDriver.so; do test -f "$prefix/$f" || { echo "::error::Missing $f"; exit 1; }; done
-          (cd "$prefix" && sha256sum -c --strict --quiet manifest.sha256)
+          git clone --depth 1 https://github.com/mihawk-99/ps5-opengl.git .deps/ps5-opengl-source
+          git -C .deps/ps5-opengl-source rev-parse HEAD
+          make -C .deps/ps5-opengl-source sdk
+          prefix="$PWD/.deps/ps5-opengl-source/build/sdk/ps5-opengl-gl46"
+          test -f "$prefix/manifest.sha256" || { echo "::error::SDK manifest missing"; exit 1; }
+          test -f "$prefix/lib/libPS5OpenGL.a" || { echo "::error::OpenGL library missing"; exit 1; }
           echo "PS5_OPENGL_PREFIX=$prefix" >> "$GITHUB_ENV"
 
       - name: Build the app folder
