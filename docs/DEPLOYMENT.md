@@ -1,0 +1,156 @@
+# Deployment
+
+This project creates a directory-style homebrew application. GitHub Releases
+include a ZIP of the complete application
+directory and its `SHA256SUMS`, and nothing else. The Makefile can update the directory
+below `/data/homebrew` over FTP. It does not configure the
+console, start payloads, register titles, launch applications, or create a
+signed retail package.
+
+## Requirements
+
+Use a console you own with an already configured, compatible homebrew
+environment and loader. Follow that loader's documentation for setup and
+supported input formats. This repository does not configure the console.
+
+Keep loader, mount, and FTP services on a trusted local network. The automated
+path uses Python 3's standard-library FTP client and requires an already-running
+FTP service on the console.
+
+## One-command development deployment
+
+Build and update the title folder through the default FTP port `2121`:
+
+```bash
+make deploy PS5_HOST=192.168.1.100
+```
+
+The default folder deployment:
+
+1. builds `dist/<TITLE_ID>/` from the current source;
+2. uploads each file beside its destination under a hidden `.upload` name;
+3. replaces that file only after its transfer completes;
+4. publishes `eboot.bin` and then `sce_sys/param.json` last; and
+5. verifies that both required files appear in the remote directory.
+
+The FTP client uses current-directory `MLSD` checks and accepts any successful
+2xx completion for file deletion. This accommodates the homebrew `ftpsrv`
+behavior used by the validated 6.02 and 12.70 environments while preserving
+the temporary-upload and required-file gates.
+
+Keeping `/data/homebrew/<TITLE_ID>/` itself in place preserves ShadowMountPlus's
+existing nullfs source while updating what the next launch reads. Fully close
+the application before deploying and do not launch it until the command
+finishes. Files removed from the local build are not deleted remotely; clean
+the title directory with `make undeploy` when an exact reset is required.
+
+Select a non-default port with a Make variable:
+
+```bash
+make deploy PS5_HOST=192.168.1.100 FTP_PORT=2121
+```
+
+The app folder is the only thing deployed. Do not keep a folder and an image
+(`.ffpkg` or `.ffpfsc`, from an earlier build) with the same title ID in scan
+paths at the same time; `make undeploy` deletes such an image.
+
+## Deploy a release ZIP
+
+`PPSA99001.zip` is a transport archive of the same complete folder produced by
+`make app`; it is not itself a loader image. Extract it on the computer, then
+upload the resulting `PPSA99001/` directory recursively so the final path is:
+
+```text
+/data/homebrew/PPSA99001/
+```
+
+This is equivalent to the default folder deployment. Upload the complete tree,
+not only `eboot.bin`, and do not upload `PPSA99001.zip` unchanged. Remove any
+same-title image (`.ffpkg`, or an `.ffpfsc` from an earlier release) from `/data/homebrew` before restarting
+ShadowMountPlus or the PS5.
+
+Supported variables are:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PS5_HOST` | required | Console IPv4 address or hostname |
+| `FTP_PORT` | `2121` | FTP service port |
+| `PS5_FTP_USER` | `anonymous` | FTP username |
+| `PS5_FTP_PASSWORD` | `codex` | FTP password |
+| `DEPLOY_DRY_RUN` | `0` | Use `1` to build and print the target without networking |
+
+For repeated local work, copy `.env.example` to the ignored `.env` file and
+set `PS5_HOST` and `FTP_PORT` there. Command-line Make values
+still override file defaults.
+
+For example, validate local packaging and the resolved destination without
+contacting a console:
+
+```bash
+make deploy PS5_HOST=192.0.2.1 DEPLOY_DRY_RUN=1
+```
+
+## Remove the staged development copy
+
+Fully close the application, then remove the current `titleId` from the FTP
+staging area:
+
+```bash
+make undeploy PS5_HOST=192.168.1.100
+```
+
+The command validates `sce_sys/param.json`, recursively removes only
+`/data/homebrew/<TITLE_ID>/`, and deletes exact same-ID image files (`.ffpkg`, and an `.ffpfsc` left by an
+earlier release) plus interrupted-upload temporary images. It never deletes the
+`/data/homebrew` root or another title. Preview the resolved targets without a
+network request by adding `DEPLOY_DRY_RUN=1`.
+
+This is deliberately named **undeploy**, not uninstall: FTP removal does not
+unregister the title from the PS5 Shell database. A stale home-screen entry may
+remain until the loader refreshes or dedicated, separately authorized cleanup
+tooling unregisters it. The command fails if the FTP server cannot enumerate a
+directory safely or if an active mount prevents removal.
+
+## Recommended edit-test loop
+
+1. Fully close the previous application and any remaining crash dialog.
+2. Confirm the console's FTP and mount services are ready.
+3. Edit the source. Update `contentVersion` in `sce_sys/param.json` for a
+   release-worthy change; routine folder deployments do not require a bump.
+4. Run `make deploy PS5_HOST=<console-address>`.
+5. Wait for the mount service to report the title ready, then launch it
+   manually.
+6. Observe the result and fully close the application before deploying again.
+
+Keeping launch and close actions manual makes the default command predictable
+and avoids replacing a package while its previous title remains active.
+
+## Manual build and stage
+
+1. Build the app folder, `dist/<TITLE_ID>/`:
+
+   ```bash
+   make
+   ```
+
+   GitHub Releases wrap that folder as `<TITLE_ID>.zip` for
+   convenient transfer. Extract that archive before deployment.
+
+2. Stage the entire `dist/<TITLE_ID>/` tree. Do not upload only `eboot.bin`.
+3. Wait for the loader to report that the title is ready, then launch it from
+   the Media section of the home screen.
+
+Rebuild immediately before deployment so an older folder is not mistaken for
+the current application.
+
+## Smoke test
+
+The default skeleton hides the splash screen, renders the Hello World frame,
+loads `/app0/assets/banner.txt`, and remains alive. Close it through the
+home-screen interface.
+
+The skeleton intentionally keeps `main` alive. Do not return from `main` or
+call an exit function unless the target loader and application lifecycle
+explicitly support that path.
+
+If launch fails, see [Troubleshooting](TROUBLESHOOTING.md).

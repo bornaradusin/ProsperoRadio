@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+# ps5-native-app-boilerplate - Host tooling regression tests.
+# Copyright (C) 2026 BlackBearReloaded
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Exercises identity, deployment, and release-workflow contracts without a console.
+
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class ToolTests(unittest.TestCase):
+    def run_init(self, param, **values):
+        environment = os.environ.copy()
+        environment.update(values)
+        return subprocess.run(
+            ["bash", str(ROOT / "tools/init-project.sh"), str(param)],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_init_coordinates_media_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            param = Path(directory) / "param.json"
+            param.write_text(
+                json.dumps(
+                    {
+                        "contentId": "UP9000-PPSA99999_00-HELLOWORLD000001",
+                        "localizedParameters": {
+                            "defaultLanguage": "en-US",
+                            "en-US": {"titleName": "Old"},
+                        },
+                        "gameIntent": {"permittedIntents": [{"intentType": "launchActivity"}]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_init(
+                param,
+                TITLE_ID="PPSA12345",
+                APP_NAME="Moon Client",
+                APP_CATEGORY="media",
+                CONTENT_SUFFIX="MOONCLIENT000001",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            configured = json.loads(param.read_text(encoding="utf-8"))
+            self.assertEqual(configured["titleId"], "PPSA12345")
+            self.assertEqual(configured["conceptId"], "12345")
+            self.assertEqual(configured["contentId"], "UP9000-PPSA12345_00-MOONCLIENT000001")
+            self.assertEqual(configured["localizedParameters"]["en-US"]["titleName"], "Moon Client")
+            self.assertEqual(configured["applicationCategoryType"], 65536)
+            self.assertEqual(configured["contentBadgeType"], 2)
+            self.assertNotIn("gameIntent", configured)
+
+    def test_init_rejects_invalid_title_without_rewriting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            param = Path(directory) / "param.json"
+            original = '{"contentId":"UP9000-PPSA99999_00-HELLOWORLD000001"}\n'
+            param.write_text(original, encoding="utf-8")
+            result = self.run_init(param, TITLE_ID="PPSA12", APP_NAME="Broken")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(param.read_text(encoding="utf-8"), original)
+
+    def test_init_derives_game_suffix_and_preserves_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            param = Path(directory) / "param.json"
+            param.write_text(
+                json.dumps(
+                    {
+                        "contentId": "UP9000-PPSA99999_00-HELLOWORLD000001",
+                        "localizedParameters": {
+                            "defaultLanguage": "en-US",
+                            "en-US": {"titleName": "Old"},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            param.chmod(0o640)
+            result = self.run_init(
+                param, TITLE_ID="PPSA54321", APP_NAME="Native Sample", CONTENT_SUFFIX=""
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            configured = json.loads(param.read_text(encoding="utf-8"))
+            self.assertEqual(configured["contentId"], "UP9000-PPSA54321_00-NATIVESAMPLE0000")
+            self.assertEqual(configured["applicationCategoryType"], 0)
+            self.assertEqual(configured["contentBadgeType"], 1)
+            self.assertEqual(
+                configured["gameIntent"]["permittedIntents"],
+                [{"intentType": "launchActivity"}],
+            )
+            self.assertEqual(param.stat().st_mode & 0o777, 0o640)
+
+    def test_undeploy_dry_run_resolves_only_current_title(self):
+        environment = os.environ.copy()
+        environment.update(PS5_HOST="192.0.2.1", DEPLOY_DRY_RUN="1")
+        result = subprocess.run(
+            ["bash", str(ROOT / "tools/deploy.sh"), "undeploy"],
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("/data/homebrew/PPSA99001/", result.stdout)
+        self.assertIn("PPSA99001.{ffpkg,ffpfsc}", result.stdout)
+        self.assertIn("no network request was sent", result.stdout)
+
+    def test_deploy_dry_run_uses_mocked_build_and_no_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sandbox = Path(directory)
+            (sandbox / "tools").mkdir()
+            (sandbox / "sce_sys").mkdir()
+            shutil.copy2(ROOT / "tools/deploy.sh", sandbox / "tools/deploy.sh")
+            (sandbox / "sce_sys/param.json").write_text(
+                '{"titleId":"PPSA12345"}\n', encoding="utf-8"
+            )
+
+            mock_bin = sandbox / "mock-bin"
+            mock_bin.mkdir()
+            mock_make = mock_bin / "make"
+            mock_make.write_text(
+                "#!/usr/bin/env bash\n"
+                "mkdir -p \"$MOCK_ROOT/dist\"\n"
+                "printf '%s\\n' \"$*\" > \"$MOCK_ROOT/make-arguments\"\n"
+                "mkdir -p \"$MOCK_ROOT/dist/PPSA12345/sce_sys\"\n"
+                "printf app > \"$MOCK_ROOT/dist/PPSA12345/eboot.bin\"\n"
+                "printf '{}' > \"$MOCK_ROOT/dist/PPSA12345/sce_sys/param.json\"\n",
+                encoding="utf-8",
+            )
+            mock_make.chmod(0o755)
+
+            environment = os.environ.copy()
+            environment.update(
+                PS5_HOST="192.0.2.1",
+                DEPLOY_DRY_RUN="1",
+                MOCK_ROOT=str(sandbox),
+                PATH=f"{mock_bin}{os.pathsep}{environment['PATH']}",
+            )
+            result = subprocess.run(
+                ["bash", str(sandbox / "tools/deploy.sh")],
+                cwd=sandbox,
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("/data/homebrew/PPSA12345/\n", result.stdout)
+            self.assertIn("Would publish 2 files", result.stdout)
+            self.assertIn("no network request was sent", result.stdout)
+            # The build asked for is the app folder, never an image.
+            arguments = sandbox / "make-arguments"
+            self.assertEqual(arguments.read_text(encoding="utf-8").split()[-1], "app")
+
+            # An image format is refused before anything is built.
+            arguments.unlink()
+            environment["DEPLOY_FORMAT"] = "ffpkg"
+            refused = subprocess.run(
+                ["bash", str(sandbox / "tools/deploy.sh")],
+                cwd=sandbox,
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(refused.returncode, 2, refused.stdout)
+            self.assertIn("DEPLOY_FORMAT is no longer used", refused.stderr)
+            self.assertFalse(arguments.exists())
+
+    def test_release_workflow_builds_only_the_folder_zip(self):
+        workflow = (ROOT / ".github/workflows/tooling.yml").read_text(encoding="utf-8")
+        self.assertIn("run: make app", workflow)
+        # The app updates itself in place, which needs a folder install: no
+        # image of any kind is built or published.
+        self.assertNotIn("make packages", workflow)
+        # The image formats are gone: nothing that builds may name them or their tools again.
+        build_files = (
+            ".github/workflows/tooling.yml",
+            "Makefile",
+            "build.ps1",
+            "tools/build.sh",
+        )
+        for name in build_files:
+            text = (ROOT / name).read_text(encoding="utf-8").lower()
+            for gone in ("ffpfsc", "mkpfs", "ffpkg", "ufs2"):
+                self.assertNotIn(gone, text, name)
+        for name in (
+            "setup-mkpfs-tooling.ps1",
+            "setup-ffpkg-tooling.ps1",
+            "setup-packaging-dependencies.sh",
+        ):
+            self.assertFalse((ROOT / "tools" / name).exists(), name)
+        # Asked for by name, the removed formats are refused before anything is built.
+        for removed in ("Ffpkg", "Ffpfsc", "All"):
+            result = subprocess.run(
+                ["bash", str(ROOT / "tools/build.sh"), removed],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 2, removed)
+            self.assertIn("usage: tools/build.sh [Folder]", result.stderr)
+        self.assertNotIn(".ffpkg", workflow)
+        self.assertIn('zip -qr "$TITLE_ID.zip" "$TITLE_ID"', workflow)
+        self.assertIn('sha256sum "$TITLE_ID.zip" > SHA256SUMS', workflow)
+        self.assertIn("dist/${{ env.TITLE_ID }}.zip", workflow)
+        self.assertIn("dist/SHA256SUMS", workflow)
+        self.assertIn("Expected one app-folder ZIP and SHA256SUMS", workflow)
+        self.assertIn("sha256sum -c SHA256SUMS", workflow)
+        self.assertIn('assets=("release/$ARCHIVE" "release/$CHECKSUM")', workflow)
+        # The release job creates a release, or fills one that has no ZIP; it never replaces,
+        # deletes or rewrites anything on a release that exists.
+        for forbidden in ("--clobber", "delete-asset", "gh release edit"):
+            self.assertNotIn(forbidden, workflow)
+        publish = workflow[workflow.index("- name: Publish GitHub release") :]
+        self.assertIn('gh release create "$TAG" ', publish)
+        self.assertIn('gh release upload "$TAG" ', publish)
+        self.assertIn("--json assets --jq '.assets[].name'", publish)
+        self.assertIn("if [[ $name == *.zip ]]; then", publish)
+        self.assertIn("::warning title=Release files not from this run::", publish)
+        self.assertLess(publish.index("gh release create"), publish.index("::warning"))
+        self.assertLess(publish.index("::warning"), publish.index("gh release upload"))
+
+    def test_release_zip_is_attested_before_upload(self):
+        workflow = (ROOT / ".github/workflows/tooling.yml").read_text(encoding="utf-8")
+        # The finished ZIP, and only the ZIP, is attested before it is uploaded: pinned action,
+        # never for a pull request or in a private repository.
+        attest = workflow.index("- name: Attest the release ZIP")
+        upload = workflow.index("- name: Upload build")
+        self.assertLess(workflow.index("- name: Verify app-folder archive"), attest)
+        self.assertLess(workflow.index("zip-open-modes.py"), attest)
+        self.assertLess(attest, upload)
+        step = workflow[attest:upload]
+        self.assertIn(
+            "uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2", step
+        )
+        self.assertIn(
+            "if: github.event_name != 'pull_request' && !github.event.repository.private", step
+        )
+        self.assertIn("subject-path: dist/${{ env.TITLE_ID }}.zip\n", step)
+        self.assertNotIn("SHA256SUMS", step)
+        build_job = workflow[workflow.index("\n  build:") : workflow.index("\n  release:")]
+        for permission in ("contents: read", "id-token: write", "attestations: write"):
+            self.assertIn(f"      {permission}\n", build_job)
+        self.assertNotIn("id-token", workflow.replace(build_job, ""))
+
+    def test_pull_request_builds_are_named_and_labelled(self):
+        workflow = (ROOT / ".github/workflows/tooling.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            'echo "artifact=${GITHUB_REPOSITORY##*/}-PR$PR_NUMBER-$short" >> "$GITHUB_OUTPUT"',
+            workflow,
+        )
+        self.assertIn('echo "BUILD_LABEL=PR $PR_NUMBER, $short" >> "$GITHUB_ENV"', workflow)
+        self.assertIn("PR_HEAD: ${{ github.event.pull_request.head.sha }}", workflow)
+        self.assertIn("name: ${{ steps.label.outputs.artifact }}", workflow)
+        # The release job still finds a tag's build under its commit.
+        self.assertIn('--name "prospero-radio-$GITHUB_SHA-release"', workflow)
+        self.assertIn(
+            'echo "artifact=prospero-radio-$GITHUB_SHA-release" >> "$GITHUB_OUTPUT"', workflow
+        )
+        # The label is in the environment before the folder is built and archived.
+        self.assertLess(workflow.index("- name: Name this build"), workflow.index("run: make app"))
+        self.assertLess(workflow.index("run: make app"), workflow.index("- name: Archive app folder"))
+        # A contributor's code is never built with write access or secrets.
+        self.assertNotIn("pull_request_target:", workflow)
+        build = (ROOT / "tools/build.sh").read_text(encoding="utf-8")
+        self.assertIn('> "$app/build-label.txt"', build)
+        self.assertIn("{1,40}$", build)
+        self.assertLess(build.index("BUILD_LABEL must be"), build.index("setup-native-dependencies.sh"))
+        self.assertLess(build.index('rm -rf -- "$app"'), build.index('> "$app/build-label.txt"'))
+
+    def test_build_label_is_checked_before_anything_is_built(self):
+        build = (ROOT / "tools/build.sh").read_text(encoding="utf-8")
+        start = build.index("if [[ -n ${BUILD_LABEL:-} ]]; then")
+        check = build[start : build.index("\nfi\n", start) + 4]
+        cases = {
+            "PR 12, 1a2b3c4": 0,
+            "pacing test 2": 0,
+            "a_b.c#d-e": 0,
+            "x" * 40: 0,
+            "x" * 41: 2,
+            "PR 12; rm -rf /": 2,
+            "$(id)": 2,
+            "two\nlines": 2,
+            "caf\u00e9": 2,
+            "a/b": 2,
+        }
+        for label, expected in cases.items():
+            result = subprocess.run(
+                ["bash", "-c", "set -euo pipefail\n" + check],
+                env={**os.environ, "BUILD_LABEL": label, "LC_ALL": "C.UTF-8"},
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, expected, repr(label))
+        unset = {key: value for key, value in os.environ.items() if key != "BUILD_LABEL"}
+        result = subprocess.run(
+            ["bash", "-c", "set -euo pipefail\n" + check], env=unset, capture_output=True
+        )
+        self.assertEqual(result.returncode, 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
