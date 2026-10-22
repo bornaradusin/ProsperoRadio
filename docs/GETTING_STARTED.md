@@ -10,7 +10,14 @@ On Ubuntu, Debian, or WSL:
 
     sudo apt update
     sudo apt install curl git make pkg-config python3 python3-venv tar unzip wget \
-      clang-18 clang-format-18 clang-tidy-18 lld-18 libsqlite3-dev
+      clang-18 clang-format-18 clang-tidy-18 lld-18 libsqlite3-dev \
+      cmake ninja-build bison flex glslang-tools spirv-tools libegl-dev libgl-dev libzstd-dev \
+      libclang-rt-18-dev
+    python3 -m pip install "meson==1.10.1" PyYAML Mako packaging pyelftools ply Jinja2 pycparser
+
+The second group builds the ps5-opengl SDK from source (`tools/build-opengl-sdk.sh`).
+Without access to `archive.mesa3d.org`, download the Mesa tarball it names and
+build with `MESA_ARCHIVE=/path/to/mesa-26.2.0.tar.xz make`.
 
 ## 2. Clone and inspect
 

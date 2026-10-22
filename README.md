@@ -121,12 +121,21 @@ Build from Linux, WSL, or a Linux CI runner. On Ubuntu, Debian, or WSL:
 ```bash
 sudo apt update
 sudo apt install curl git make pkg-config python3 python3-venv tar unzip wget zip \
-  clang-18 clang-format-18 clang-tidy-18 lld-18 libsqlite3-dev
+  clang-18 clang-format-18 clang-tidy-18 lld-18 libsqlite3-dev \
+  cmake ninja-build bison flex glslang-tools spirv-tools libegl-dev libgl-dev libzstd-dev \
+  libclang-rt-18-dev
+python3 -m pip install "meson==1.10.1" PyYAML Mako packaging pyelftools ply Jinja2 pycparser
 ```
+
+The extra packages on the last two lines build the ps5-opengl SDK from source
+(`tools/build-opengl-sdk.sh`): its prebuilt release went away with the original
+repository. The first build takes a while; later builds reuse it. If
+`archive.mesa3d.org` is unreachable, download the Mesa tarball named in the
+error yourself and run `MESA_ARCHIVE=/path/to/mesa-26.2.0.tar.xz make`.
 
 The
 repository downloads, verifies, and caches the public PS5 Payload SDK, zlib,
-PacBrew's SQLite and libcurl ports, the interface kit, the ps5-opengl SDK,
+PacBrew's SQLite and libcurl ports, the interface kit, the ps5-opengl sources,
 HarfBuzz, the pinned upstream Lapy helper sources, and GoogleTest
 below ignored `.deps/`.
 No proprietary SDK, system module, key, or game asset is included or fetched.
