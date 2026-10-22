@@ -128,6 +128,23 @@ jobs:
         run: cd runtime && sha256sum -c libc.prx.sha256
 
       # tools/build.sh compiles through ccache whenever it is installed.
+      - name: Install replacement OpenGL SDK
+        env:
+          SDK_URL: ${{ vars.PS5_OPENGL_SDK_URL }}
+          SDK_SHA256: ${{ vars.PS5_OPENGL_SDK_SHA256 }}
+        run: |
+          test -n "$SDK_URL" && test -n "$SDK_SHA256" || { echo "::error::Configure replacement SDK repository variables"; exit 1; }
+          curl -fL --retry 3 "$SDK_URL" -o "$RUNNER_TEMP/opengl-sdk.tar.gz"
+          echo "$SDK_SHA256  $RUNNER_TEMP/opengl-sdk.tar.gz" | sha256sum -c -
+          mkdir -p .deps/replacement-opengl
+          tar -xzf "$RUNNER_TEMP/opengl-sdk.tar.gz" -C .deps/replacement-opengl
+          library=$(find "$PWD/.deps/replacement-opengl" -type f -name libPS5OpenGL.a -print -quit)
+          test -n "$library" || { echo "::error::Replacement SDK lacks libPS5OpenGL.a"; exit 1; }
+          prefix=$(dirname "$(dirname "$library")")
+          for f in manifest.sha256 include/EGL/egl.h include/GL/glcorearb.h include/ps5_opengl_display.h lib/libSceAgc.so lib/libSceAgcDriver.so; do test -f "$prefix/$f" || { echo "::error::Missing $f"; exit 1; }; done
+          (cd "$prefix" && sha256sum -c --strict --quiet manifest.sha256)
+          echo "PS5_OPENGL_PREFIX=$prefix" >> "$GITHUB_ENV"
+
       - name: Build the app folder
         run: make app
 
