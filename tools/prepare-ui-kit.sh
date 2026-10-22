@@ -12,7 +12,7 @@ set -euo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 commit=327024dda0911bd1d03bf8beec80ba735b0977ea
-url=https://github.com/blackbearreloaded/ps5-homebrew-ui.git
+url=https://github.com/mihawk-99/PS5_VKHomebrewUI.git
 
 cache="$root/.deps/ui-kit"
 stage="$cache/stage"
