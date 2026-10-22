@@ -134,7 +134,10 @@ jobs:
           git -C .deps/ps5-opengl-source rev-parse HEAD
           make -C .deps/ps5-opengl-source source-fetch
           python3 -m pip install PyYAML Mako
-          make -C .deps/ps5-opengl-source sdk
+          bash tools/setup-native-dependencies.sh
+          sdk="$PWD/.deps/native/ps5-payload-sdk"
+          test -x "$sdk/bin/prospero-clang" || { echo "::error::PS5 compiler missing"; exit 1; }
+          make -C .deps/ps5-opengl-source sdk PS5_PAYLOAD_SDK="$sdk"
           prefix="$PWD/.deps/ps5-opengl-source/build/sdk/ps5-opengl-gl46"
           test -f "$prefix/manifest.sha256" || { echo "::error::SDK manifest missing"; exit 1; }
           test -f "$prefix/lib/libPS5OpenGL.a" || { echo "::error::OpenGL library missing"; exit 1; }
