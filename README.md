@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/blackbearreloaded/ProsperoRadio/actions/workflows/tooling.yml"><img src="https://github.com/blackbearreloaded/ProsperoRadio/actions/workflows/tooling.yml/badge.svg" alt="Build"></a>
-  <a href="https://github.com/blackbearreloaded/ProsperoRadio/releases/latest"><img src="https://img.shields.io/github/v/release/blackbearreloaded/ProsperoRadio?display_name=tag" alt="Latest release"></a>
+  <a href="https://github.com/bornaradusin/ProsperoRadio/actions/workflows/tooling.yml"><img src="https://github.com/bornaradusin/ProsperoRadio/actions/workflows/tooling.yml/badge.svg" alt="Build"></a>
+  <a href="https://github.com/bornaradusin/ProsperoRadio/releases/latest"><img src="https://img.shields.io/github/v/release/bornaradusin/ProsperoRadio?display_name=tag" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg" alt="GPL-3.0-or-later"></a>
 </p>
 
@@ -158,7 +158,7 @@ dist/PPSA99001/
 
 Releases are that folder as one file, `PPSA99001.zip`, with its `SHA256SUMS`.
 A release ZIP built by the workflow can be checked with
-`gh attestation verify PPSA99001.zip -R blackbearreloaded/ProsperoRadio` (GitHub CLI); this covers
+`gh attestation verify PPSA99001.zip -R bornaradusin/ProsperoRadio` (GitHub CLI); this covers
 releases built by GitHub Actions from now on, not earlier ones.
 A release is made by pushing the version tag: the workflow builds, attests and publishes both
 files, and nothing is attached by hand. It creates the release, or adds the files to one that
@@ -227,7 +227,7 @@ instead, and the manual steps below still work.
 
 1. Fully close ProsperoRadio.
 2. From the
-   [latest release](https://github.com/blackbearreloaded/ProsperoRadio/releases/latest),
+   [latest release](https://github.com/bornaradusin/ProsperoRadio/releases/latest),
    download `PPSA99001.zip`.
 3. Extract it locally, then upload the entire `PPSA99001/` folder over FTP so
    its destination is `/data/homebrew/PPSA99001/`, and wait for the transfer to

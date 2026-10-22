@@ -14,7 +14,7 @@ On Ubuntu, Debian, or WSL:
 
 ## 2. Clone and inspect
 
-    git clone git@github.com:blackbearreloaded/ProsperoRadio.git
+    git clone git@github.com:bornaradusin/ProsperoRadio.git
     cd prospero-radio
     make doctor
 

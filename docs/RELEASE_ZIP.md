@@ -26,4 +26,4 @@ comes from a run and has an attestation. The publish step handles three cases:
   may have no attestation.
 
 A release ZIP built by the workflow can be checked with
-`gh attestation verify PPSA99001.zip -R blackbearreloaded/ProsperoRadio` (GitHub CLI).
+`gh attestation verify PPSA99001.zip -R bornaradusin/ProsperoRadio` (GitHub CLI).
