@@ -209,7 +209,7 @@ void App::run_menu(int tag, ui::Feedback &feedback)
         content.icon = ui::StatusKind::info;
         content.title = "Powered by Radio Browser";
         content.body = std::string(kCredits) + "\nProsperoRadio " + version_ +
-                       ", brought to you by BlackBearReloaded.";
+                       ", originally developed by BlackBearReloaded, who has stepped down. Now developed and maintained by bornaradusin.";
         content.buttons = {{"Back to ProsperoRadio", ui::ButtonKind::primary}};
         about_.open(std::move(content), feedback);
         break;
@@ -442,7 +442,7 @@ void App::update(const InputFrame &input, float dt, ui::Feedback &feedback)
             update_.offer(newer, feedback);
         else
             session_.toasts.push(ui::StatusKind::info, "Update available",
-                                 "Version " + newer.version + " is on homebrew.page",
+                                 "Version " + newer.version + " is on prosperostore.net",
                                  kUpdateNoticeSeconds);
     }
     update_.update(dt, feedback);

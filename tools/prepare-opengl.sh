@@ -3,7 +3,7 @@
 # Copyright (C) 2026 BlackBearReloaded
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Selects the ps5-opengl SDK (PS5_OPENGL_PREFIX, or the pinned release), exposes
+# Selects the ps5-opengl SDK (PS5_OPENGL_PREFIX, or the pinned source build), exposes
 # it at .deps/ps5-opengl/current and writes the linker group the build links.
 
 set -euo pipefail
@@ -19,7 +19,7 @@ if [[ -n ${PS5_OPENGL_PREFIX:-} ]]; then
         exit 2
     }
 else
-    prefix=$(bash "$root/tools/fetch-opengl-sdk.sh")
+    prefix=$(bash "$root/tools/build-opengl-sdk.sh")
 fi
 
 for required in include/EGL/egl.h include/GL/glcorearb.h include/ps5_opengl_display.h \

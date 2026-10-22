@@ -62,6 +62,12 @@ required_one_of clang-format 'format validation' clang-format-18 clang-format
 required_one_of clang-tidy 'static analysis' clang-tidy-18 clang-tidy
 required_one_of llvm-ar 'static archive creation' llvm-ar-18 llvm-ar ar
 required_one_of llvm-ranlib 'static archive indexing' llvm-ranlib-18 llvm-ranlib ranlib
+required cmake 'ps5-opengl SDK source build'
+required ninja 'ps5-opengl SDK source build'
+required meson 'ps5-opengl SDK source build (Mesa)'
+required bison 'ps5-opengl SDK source build (Mesa)'
+required flex 'ps5-opengl SDK source build (Mesa)'
+required glslangValidator 'ps5-opengl SDK shader compilation'
 required wget 'pinned dependency downloads'
 required unzip 'public SDK extraction'
 required tar 'zlib source extraction'

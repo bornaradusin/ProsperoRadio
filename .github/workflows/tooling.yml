@@ -5,13 +5,6 @@
 name: Build
 
 on:
-  # Build on main pushes and manual dispatch; version tags publish releases.
-  push:
-    branches:
-      - main
-    tags:
-      - "[0-9][0-9].[0-9][0-9][0-9].[0-9][0-9][0-9]"
-  pull_request:
   workflow_dispatch:
     inputs:
       snapshot:

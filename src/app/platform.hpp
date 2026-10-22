@@ -35,7 +35,7 @@ bool radio_catalog_initials(bool favorites_only, unsigned counts[kInitialBuckets
 bool radio_catalog_letter_starts(const radio_catalog_query_t *query, radio_catalog_order_t order,
                                  bool favorites_only, unsigned starts[kInitialBuckets]);
 
-// A newer release on homebrew.page. The check runs once per launch, on its own
+// A newer release on prosperostore.net. The check runs once per launch, on its own
 // thread; a failed check says nothing.
 struct radio_update_t
 {

@@ -21,3 +21,13 @@ dist/
 *.sprx
 *.prx
 *.pkg
+/.deps/
+/build/
+/dist/
+/PPSA99001.zip
+/SHA256SUMS
+/ProsperoRadio-*.zip
+/ProsperoRadio-update.py
+/ProsperoRadio-Chat-Handoff-*.md
+/ProsperoRadio-RELEASE-NOTES.md
+.DS_Store

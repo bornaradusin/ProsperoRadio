@@ -4,7 +4,7 @@
 //
 // Both are the PS5 Native App Boilerplate's self-update kit
 // (third_party/update_check, see its README.md), as ProsperoEden uses it. Once
-// per launch the app asks the homebrew.page catalog for its own entry, checks
+// per launch the app asks the prosperostore.net catalog for its own entry, checks
 // the catalog's Ed25519 signature and compares the listed content version with
 // this build's (sce_sys/param.json). The update downloads the release ZIP from
 // GitHub over HTTPS and streams it to the self-update helper

@@ -216,7 +216,7 @@ void UpdateDialog::layout_notes()
     {
         y += 20.0f;
         NoteLine out;
-        out.text = "The rest is on the app's page on homebrew.page.";
+        out.text = "The rest is on the app's page on prosperostore.net.";
         out.y = y;
         out.height = std::round(kNoteSize * 1.6f);
         out.size = kNoteSize;
