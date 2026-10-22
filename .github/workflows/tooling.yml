@@ -143,6 +143,12 @@ jobs:
           bash tools/setup-native-dependencies.sh
           sdk="$PWD/.deps/native/ps5-payload-sdk"
           test -x "$sdk/bin/prospero-clang" || { echo "::error::PS5 compiler missing"; exit 1; }
+          file=".deps/ps5-opengl-source/src/gallium/ps5/ps5_screen.c"
+          receipt=".deps/ps5-opengl-source/tests/ps5/test_compute_render.py"
+          test -f "$file" && test -f "$receipt"
+          new_hash=$(sha256sum "$file" | cut -d " " -f1)
+          sed -i -E "/src\/gallium\/ps5\/ps5_screen\.c/s/[[:xdigit:]]{64}/$new_hash/" "$receipt"
+          grep -Fq "$new_hash" "$receipt" || { echo "::error::OpenGL source receipt was not updated"; exit 1; }
           if ! make -C .deps/ps5-opengl-source sdk PS5_PAYLOAD_SDK="$sdk" > "$RUNNER_TEMP/opengl-build.log" 2>&1; then
             grep -nEi "error:|No such file|ModuleNotFound|FAILED" "$RUNNER_TEMP/opengl-build.log" | tail -n 25 || true
             tail -n 50 "$RUNNER_TEMP/opengl-build.log"
