@@ -20,7 +20,7 @@
 
 **ProsperoRadio was originally created and developed by BlackBearReloaded.**
 
-This repository is a community-maintained continuation of the original ProsperoRadio project, established to preserve the application and its source code after the original GitHub repository became unavailable.
+This repository is a continuation of the original ProsperoRadio project, established to preserve the application and its source code after the original GitHub repository became unavailable.
 
 The goal is to keep ProsperoRadio accessible, working and available for future development on PlayStation 5 homebrew systems.
 
@@ -30,8 +30,6 @@ The goal is to keep ProsperoRadio accessible, working and available for future d
 All original copyright notices, third-party acknowledgements and GPL-3.0-or-later licensing are retained. Credit for the original application and its development belongs to BlackBearReloaded.
 
 ![ProsperoRadio's home screen with a station playing: the Now Playing header, the Popular list and the letter rail](docs/images/prosperoradio.png)
-
-The picture shows ProsperoRadio running on a PlayStation 5 with a station on air.
 
 **Project maintenance:** Originally created by **BlackBearReloaded**, who has stepped down. **[bornaradusin](https://github.com/bornaradusin)** now develops and maintains ProsperoRadio. Original copyright and licences are preserved.
 
