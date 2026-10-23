@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="sce_sys/icon0.png" width="128" alt="ProsperoRadio icon">
 </p>
@@ -12,18 +11,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/bornaradusin/ProsperoRadio/actions/workflows/tooling.yml"><img src="https://github.com/bornaradusin/ProsperoRadio/actions/workflows/tooling.yml/badge.svg" alt="Build"></a>
-  <a href="https://github.com/bornaradusin/ProsperoRadio/releases/latest"><img src="https://img.shields.io/github/v/release/bornaradusin/ProsperoRadio?display_name=tag" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg" alt="GPL-3.0-or-later"></a>
-</p>
-
-<p align="center">
   <a href="https://www.buymeacoffee.com/bornaradusin">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
          alt="Buy Me a Coffee"
          width="140">
   </a>
 </p>
+
 ## Project preservation and maintenance
 
 **ProsperoRadio was originally created and developed by BlackBearReloaded.**
